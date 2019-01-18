@@ -28,6 +28,7 @@
 
   <properties>
     <doc.skip>false</doc.skip>
+    <jmh-core.version>1.19</jmh-core.version>
   </properties>
 
   <dependencies>
@@ -84,6 +85,17 @@
       <artifactId>mockito-core</artifactId>
       <version>2.22.0</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>${jmh-core.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>${jmh-core.version}</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
