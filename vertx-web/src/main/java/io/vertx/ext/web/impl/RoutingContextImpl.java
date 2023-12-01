@@ -76,8 +76,8 @@ public class RoutingContextImpl extends RoutingContextImplBase {
   private volatile boolean isSessionAccessed = false;
   private volatile boolean endHandlerCalled = false;
 
-  public RoutingContextImpl(String mountPoint, RouterImpl router, HttpServerRequest request, Set<RouteImpl> routes) {
-    super(mountPoint, routes, router);
+  public RoutingContextImpl(String mountPoint, RouterImpl router, HttpServerRequest request, RouteImpl[] orderedRoutes) {
+    super(mountPoint, orderedRoutes, router);
     this.router = router;
     this.request = new HttpServerRequestWrapper(request, router.getAllowForward());
     this.body = new RequestBodyImpl(this);
@@ -561,7 +561,7 @@ public class RoutingContextImpl extends RoutingContextImplBase {
   }
 
   private void doFail() {
-    this.iter = router.iterator();
+    resetNextRoute();
     currentRoute = null;
     next();
   }

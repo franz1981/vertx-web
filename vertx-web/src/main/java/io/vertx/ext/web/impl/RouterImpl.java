@@ -65,7 +65,7 @@ public class RouterImpl implements Router {
       LOG.trace("Router: " + System.identityHashCode(this) + " accepting request " + request.method() + " " + request.absoluteURI());
     }
 
-    new RoutingContextImpl(null, this, request, state.getRoutes()).next();
+    new RoutingContextImpl(null, this, request, state.getOrderedRoutes()).next();
   }
 
   @Override
@@ -235,7 +235,7 @@ public class RouterImpl implements Router {
 
   @Override
   public List<Route> getRoutes() {
-    return new ArrayList<>(state.getRoutes());
+    return Arrays.asList(state.getOrderedRoutes());
   }
 
   @Override
@@ -247,13 +247,13 @@ public class RouterImpl implements Router {
   @Override
   public void handleContext(RoutingContext ctx) {
     final RoutingContextInternal ctxi = (RoutingContextInternal) ctx;
-    new RoutingContextWrapper(getAndCheckRoutePath(ctxi), state.getRoutes(), ctxi, this).next();
+    new RoutingContextWrapper(getAndCheckRoutePath(ctxi), state.getOrderedRoutes(), ctxi, this).next();
   }
 
   @Override
   public void handleFailure(RoutingContext ctx) {
     final RoutingContextInternal ctxi = (RoutingContextInternal) ctx;
-    new RoutingContextWrapper(getAndCheckRoutePath(ctxi), state.getRoutes(), ctxi, this).next();
+    new RoutingContextWrapper(getAndCheckRoutePath(ctxi), state.getOrderedRoutes(), ctxi, this).next();
   }
 
   @Override

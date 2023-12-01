@@ -43,13 +43,13 @@ public abstract class RoutingContextImplBase implements RoutingContextInternal {
 
   protected static final Logger LOG = LoggerFactory.getLogger(RoutingContext.class);
 
-  private final Set<RouteImpl> routes;
-
   protected final Router currentRouter;
   protected final String mountPoint;
   private volatile int currentRouteNextHandlerIndex;
   private volatile int currentRouteNextFailureHandlerIndex;
-  protected Iterator<RouteImpl> iter;
+  protected final RouteImpl[] orderedRoutes;
+  private int nextRouteIndex;
+
   protected RouteState currentRoute;
   // When Route#matches executes, if it returns != 0 this flag is configured
   // to write the correct status code at the end of routing process
@@ -62,10 +62,10 @@ public abstract class RoutingContextImplBase implements RoutingContextInternal {
 
   protected Set<HttpMethod> allowedMethods = new HashSet<>();
 
-  RoutingContextImplBase(String mountPoint, Set<RouteImpl> routes, Router currentRouter) {
+  RoutingContextImplBase(String mountPoint, RouteImpl[] orderedRoutes, Router currentRouter) {
     this.mountPoint = mountPoint;
-    this.routes = routes;
-    this.iter = routes.iterator();
+    this.orderedRoutes = orderedRoutes;
+    this.nextRouteIndex = 0;
 
     this.currentRouter = currentRouter;
     resetMatchFailure();
@@ -125,9 +125,21 @@ public abstract class RoutingContextImplBase implements RoutingContextInternal {
   }
 
   void restart() {
-    this.iter = routes.iterator();
+    resetNextRoute();
     currentRoute = null;
     next();
+  }
+
+  protected final void resetNextRoute() {
+    nextRouteIndex = 0;
+  }
+
+  protected final RouteImpl nextRoute() {
+    final RouteImpl[] routes = this.orderedRoutes;
+    if (nextRouteIndex == routes.length) {
+      return null;
+    }
+    return routes[nextRouteIndex++];
   }
 
   boolean iterateNext() {
@@ -150,9 +162,9 @@ public abstract class RoutingContextImplBase implements RoutingContextInternal {
       }
     }
     // Search for more handlers
-    while (iter.hasNext()) {
-      // state is locked at this moment
-      RouteState routeState = iter.next().state();
+    RouteImpl nextRoute;
+    while ((nextRoute = nextRoute()) != null) {
+      RouteState routeState = nextRoute.state();
 
       CURRENT_ROUTE_NEXT_HANDLER_INDEX.set(this, 0);
       CURRENT_ROUTE_NEXT_FAILURE_HANDLER_INDEX.set(this, 0);

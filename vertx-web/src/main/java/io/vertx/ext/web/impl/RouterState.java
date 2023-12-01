@@ -21,6 +21,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * This class encapsulates the router state, all mutations are atomic and return a new state with the mutation.
@@ -30,6 +31,9 @@ import java.util.*;
  * @author <a href="http://pmlopes@gmail.com">Paulo Lopes</a>
  */
 final class RouterState {
+
+  private static final AtomicReferenceFieldUpdater<RouterState, RouteImpl[]> ORDERED_ROUTES =
+    AtomicReferenceFieldUpdater.newUpdater(RouterState.class, RouteImpl[].class, "orderedRoutes");
 
   private static final Comparator<RouteImpl> routeComparator = (RouteImpl o1, RouteImpl o2) -> {
     // we keep a set of handlers ordered by its "order" property
@@ -55,6 +59,7 @@ final class RouterState {
   private final RouterImpl router;
 
   private final TreeSet<RouteImpl> routes;
+  private volatile RouteImpl[] orderedRoutes;
   private final int orderSequence;
   private final Map<Integer, Handler<RoutingContext>> errorHandlers;
   private final Handler<Router> modifiedHandler;
@@ -64,6 +69,7 @@ final class RouterState {
   public RouterState(RouterImpl router, TreeSet<RouteImpl> routes, int orderSequence, Map<Integer, Handler<RoutingContext>> errorHandlers, Handler<Router> modifiedHandler, AllowForwardHeaders allowForward, Map<String, Object> metadata) {
     this.router = router;
     this.routes = routes;
+    this.orderedRoutes = null;
     this.orderSequence = orderSequence;
     this.errorHandlers = errorHandlers;
     this.modifiedHandler = modifiedHandler;
@@ -91,6 +97,16 @@ final class RouterState {
       return Collections.emptySet();
     }
     return routes;
+  }
+
+  public RouteImpl[] getOrderedRoutes() {
+    RouteImpl[] orderedRoutes = this.orderedRoutes;
+    if (orderedRoutes == null) {
+      orderedRoutes = routes.toArray(new RouteImpl[0]);
+      // safe publish with very low cost
+      ORDERED_ROUTES.lazySet(this, orderedRoutes);
+    }
+    return orderedRoutes;
   }
 
   RouterState setRoutes(Set<RouteImpl> routes) {
